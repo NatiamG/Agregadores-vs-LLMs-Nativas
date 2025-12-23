@@ -1,439 +1,1350 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise Técnica Exaustiva: Agregadores vs LLMs Diretas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- GSAP + ScrollTrigger + Lenis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html.lenis,
+        html.lenis body {
+            height: auto;
+        }
+
+        .lenis.lenis-smooth {
+            scroll-behavior: auto !important;
+        }
+
+        .lenis.lenis-smooth [data-lenis-prevent] {
+            overscroll-behavior: contain;
+        }
+
+        .lenis.lenis-stopped {
+            overflow: hidden;
+        }
+
+        .lenis.lenis-smooth iframe {
+            pointer-events: none;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            scroll-behavior: smooth;
+            background-color: #030712;
+            color: #f8fafc;
+            overflow-x: hidden;
         }
+
+        /* Cursor personalizado */
+        .custom-cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(99, 102, 241, 0.8);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            transition: transform 0.15s ease-out, width 0.2s, height 0.2s;
+        }
+
+        .custom-cursor.hover {
+            width: 50px;
+            height: 50px;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+            z-index: 9999;
+            transform-origin: left;
+            transform: scaleX(0);
+        }
+
+        /* Glass morphism cards */
         .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        /* Hero gradient */
         .hero-gradient {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.3), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(139, 92, 246, 0.15), transparent),
+                radial-gradient(ellipse 50% 30% at 20% 80%, rgba(236, 72, 153, 0.1), transparent);
         }
-        .pro-item::before {
-            content: "✓";
-            color: #10b981;
-            font-weight: bold;
-            margin-right: 12px;
+
+        /* Animated gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #10b981, #06b6d4, #6366f1, #8b5cf6);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 8s ease infinite;
         }
-        .con-item::before {
-            content: "✕";
-            color: #ef4444;
-            font-weight: bold;
-            margin-right: 12px;
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
         }
-        .badge-pro { @apply bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider; }
-        .badge-con { @apply bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider; }
-        .feature-bar { transition: width 1.5s ease-in-out; }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Section reveal */
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(100px);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        /* Split text */
+        .split-char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        .split-word {
+            display: inline-block;
+            overflow: hidden;
+        }
+
+        /* Magnetic button */
+        .magnetic-btn {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .magnetic-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            transform: translateX(-100%);
+            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .magnetic-btn:hover::before {
+            transform: translateX(0);
+        }
+
+        /* Glow effect */
+        .glow {
+            box-shadow:
+                0 0 20px rgba(99, 102, 241, 0.3),
+                0 0 40px rgba(99, 102, 241, 0.2),
+                0 0 60px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Counter animation */
+        .counter {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Horizontal scroll section */
+        .horizontal-scroll {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 2rem;
+        }
+
+        .horizontal-scroll-item {
+            flex: 0 0 auto;
+            width: 400px;
+        }
+
+        /* Floating badges */
+        .floating-badge {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(-10px) rotate(2deg);
+            }
+
+            75% {
+                transform: translateY(5px) rotate(-2deg);
+            }
+        }
+
+        /* Noise overlay */
+        .noise-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        /* Marquee */
+        .marquee {
+            display: flex;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .marquee-content {
+            flex-shrink: 0;
+            display: flex;
+            gap: 4rem;
+            animation: marquee 30s linear infinite;
+        }
+
+        @keyframes marquee {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Number counter glow */
+        .stat-glow {
+            text-shadow:
+                0 0 10px rgba(16, 185, 129, 0.5),
+                0 0 20px rgba(16, 185, 129, 0.3),
+                0 0 30px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Scroll indicator */
+        .scroll-indicator {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-20px);
+            }
+
+            60% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Table hover effects */
+        .table-row {
+            transition: all 0.3s ease;
+        }
+
+        .table-row:hover {
+            background: rgba(99, 102, 241, 0.05);
+            transform: scale(1.01);
+        }
+
+        /* Badge animations */
+        .badge-pro {
+            @apply bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-emerald-500/30;
+        }
+
+        .badge-con {
+            @apply bg-rose-500/20 text-rose-400 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-rose-500/30;
+        }
+
+        /* Feature bar animation */
+        .feature-bar {
+            transform-origin: left;
+            transform: scaleX(0);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#6366f1, #8b5cf6);
+            border-radius: 3px;
+        }
+
+        .logo-aya {
+            filter: brightness(0) invert(1);
+            height: 30px;
+            width: auto;
+        }
+
+        .logo-aya-footer {
+            filter: brightness(0) invert(1);
+            height: 40px;
+            width: auto;
+            opacity: 0.6;
+        }
     </style>
 </head>
-<body class="antialiased text-slate-900">
+
+<body class="antialiased">
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar"></div>
 
     <!-- Hero Section -->
-    <header class="hero-gradient text-white pt-24 pb-32 px-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]"></div>
-        <div class="max-w-6xl mx-auto relative z-10 text-center">
-            <div class="flex justify-center mb-8">
-                <span class="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-indigo-200 text-xs font-bold uppercase tracking-[0.2em]">
+    <header class="hero-gradient min-h-screen flex items-center justify-center relative overflow-hidden noise-overlay">
+        <!-- Animated background orbs -->
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-[150px] animate-pulse"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/15 rounded-full blur-[120px] animate-pulse"
+            style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 right-1/3 w-64 h-64 bg-pink-500/10 rounded-full blur-[100px] animate-pulse"
+            style="animation-delay: 2s;"></div>
+
+        <!-- Floating particles container -->
+        <div id="particles" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+        <div class="max-w-6xl mx-auto px-6 relative z-10 text-center">
+            <!-- Badge -->
+            <div class="floating-badge inline-flex items-center gap-4 mb-10">
+                <span
+                    class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-sm">
                     Whitepaper Técnico • Dezembro 2025
                 </span>
+                <div class="flex items-center gap-3 border-l border-white/20 pl-4">
+                    <span class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Powered by</span>
+                    <img src="assets/img/AYA.png" alt="AYA" class="logo-aya">
+                </div>
             </div>
-            <h1 class="text-5xl md:text-7xl font-black mb-8 leading-tight tracking-tight">
-                Agregadores vs <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">LLMs Nativas</span>
+
+            <!-- Main Title with split text animation -->
+            <h1 class="hero-title text-5xl md:text-8xl font-black mb-10 leading-[0.9] tracking-tight">
+                <span class="block text-white">Agregadores vs</span>
+                <span class="block gradient-text mt-2">LLMs Nativas</span>
             </h1>
-            <p class="text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto font-light leading-relaxed">
-                Uma investigação profunda sobre as limitações ocultas, arquitetura de filas e o verdadeiro custo da conveniência em plataformas como Adapta One e Inner AI.
+
+            <!-- Subtitle -->
+            <p
+                class="hero-subtitle text-xl md:text-2xl text-slate-400 max-w-4xl mx-auto font-light leading-relaxed mb-16 opacity-0">
+                Uma investigação profunda sobre as limitações ocultas, arquitetura de filas e o verdadeiro custo da
+                conveniência em plataformas como Adapta One e Inner AI.
             </p>
+        </div>
+
+        <!-- Scroll indicator - fora do container de conteúdo -->
+        <div
+            class="scroll-indicator absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-500 z-20">
+            <span class="text-[10px] uppercase tracking-[0.3em] font-bold">Scroll para explorar</span>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-6 -mt-20 pb-24">
-
-        <!-- Quick Summary Cards -->
-        <section class="grid md:grid-cols-3 gap-6 mb-20">
-            <div class="glass-card p-8 rounded-[2rem] shadow-2xl">
-                <div class="flex items-center gap-4 mb-6 text-indigo-600 font-bold uppercase text-xs tracking-widest">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Economia Anual
-                </div>
-                <h3 class="text-4xl font-black text-slate-900 mb-2">R$ 252</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">A diferença média entre um agregador e a subscrição direta do líder de mercado.</p>
-            </div>
-            <div class="glass-card p-8 rounded-[2rem] shadow-2xl">
-                <div class="flex items-center gap-4 mb-6 text-emerald-600 font-bold uppercase text-xs tracking-widest">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Gap de Recursos
-                </div>
-                <h3 class="text-4xl font-black text-slate-900 mb-2">72%</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">Recursos nativos (GPTs, Memory, Canvas, Artifacts) que são perdidos via agregador.</p>
-            </div>
-            <div class="glass-card p-8 rounded-[2rem] shadow-2xl border-indigo-200 ring-4 ring-indigo-500/5">
-                <div class="flex items-center gap-4 mb-6 text-rose-600 font-bold uppercase text-xs tracking-widest">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Risco de Latência
-                </div>
-                <h3 class="text-4xl font-black text-slate-900 mb-2">Alto</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">Arquitetura baseada em filas e paralelismo de contas reduz a velocidade em 3x em pico.</p>
-            </div>
-        </section>
-
-        <!-- Detalhamento Original -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-black mb-12 text-slate-900 border-l-8 border-indigo-600 pl-6 uppercase tracking-tighter italic">01. O que são Agregadores de IA?</h2>
-            <div class="prose prose-slate max-w-none text-slate-600 leading-loose text-lg mb-12">
-                Agregadores como <strong>Adapta One</strong> e <strong>Inner AI</strong> prometem acesso a múltiplas IAs (GPT-4, Claude 3.5 Sonnet, Gemini Pro) em uma única plataforma por um preço reduzido. No entanto, tecnicamente, eles operam como "proxies" ou revendedores de API, muitas vezes sacrificando as camadas de software mais avançadas que os criadores (OpenAI/Anthropic) reservam para suas próprias interfaces.
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-12">
-                <div class="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                    <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
-                        <span class="p-2 bg-indigo-50 rounded-lg">🔗</span> Agregadores (Interface única)
+    <!-- Stats Section -->
+    <section class="py-32 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Stat Card 1 -->
+                <div class="stat-card glass-card p-10 rounded-[2rem] reveal-section">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-indigo-400 font-bold uppercase text-xs tracking-widest">Economia Anual</span>
+                    </div>
+                    <h3 class="text-5xl font-black text-white mb-3">
+                        R$ <span class="counter" data-target="252">0</span>
                     </h3>
-                    <ul class="space-y-4 text-slate-600">
-                        <li class="flex items-start gap-3"><span class="text-indigo-500 font-bold">•</span> Acessam modelos via API compartilhada</li>
-                        <li class="flex items-start gap-3"><span class="text-indigo-500 font-bold">•</span> Biblioteca de prompts próprios</li>
-                        <li class="flex items-start gap-3"><span class="text-indigo-500 font-bold">•</span> Cursos em português integrados</li>
+                    <p class="text-slate-500 text-sm leading-relaxed">A diferença média entre um agregador e a
+                        subscrição direta do líder de mercado.</p>
+                </div>
+
+                <!-- Stat Card 2 -->
+                <div class="stat-card glass-card p-10 rounded-[2rem] reveal-section" style="transition-delay: 0.1s;">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <span class="text-emerald-400 font-bold uppercase text-xs tracking-widest">Gap de
+                            Recursos</span>
+                    </div>
+                    <h3 class="text-5xl font-black text-white mb-3">
+                        <span class="counter stat-glow" data-target="72">0</span>%
+                    </h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Recursos nativos (GPTs, Memory, Canvas, Artifacts)
+                        que são perdidos via agregador.</p>
+                </div>
+
+                <!-- Stat Card 3 -->
+                <div class="stat-card glass-card p-10 rounded-[2rem] reveal-section glow"
+                    style="transition-delay: 0.2s;">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-rose-400 font-bold uppercase text-xs tracking-widest">Risco de Latência</span>
+                    </div>
+                    <h3 class="text-5xl font-black text-white mb-3">Alto</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Arquitetura baseada em filas e paralelismo de
+                        contas reduz a velocidade em 3x em pico.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 01 -->
+    <section class="py-32 px-6 relative overflow-hidden">
+        <div class="max-w-6xl mx-auto">
+            <div class="reveal-left">
+                <h2 class="text-4xl md:text-6xl font-black mb-16 text-white tracking-tight">
+                    <span class="text-indigo-500">01.</span> O que são<br>
+                    <span class="gradient-text">Agregadores de IA?</span>
+                </h2>
+            </div>
+
+            <div class="prose prose-invert max-w-none text-slate-400 leading-loose text-xl mb-16 reveal-section">
+                Agregadores como <strong class="text-white">Adapta One</strong> e <strong class="text-white">Inner
+                    AI</strong> prometem acesso a múltiplas IAs (GPT-4, Claude 3.5 Sonnet, Gemini Pro) em uma única
+                plataforma por um preço reduzido. No entanto, tecnicamente, eles operam como "proxies" ou revendedores
+                de API, muitas vezes sacrificando as camadas de software mais avançadas que os criadores
+                (OpenAI/Anthropic) reservam para suas próprias interfaces.
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Agregadores Card -->
+                <div
+                    class="reveal-left glass-card p-10 rounded-[2.5rem] group hover:scale-[1.02] transition-all duration-500">
+                    <h3 class="text-2xl font-bold mb-8 flex items-center gap-4">
+                        <span class="p-3 bg-indigo-500/20 rounded-xl text-2xl">🔗</span>
+                        <span class="text-white">Agregadores</span>
+                        <span class="text-slate-600 text-sm font-normal">(Interface única)</span>
+                    </h3>
+                    <ul class="space-y-5 text-slate-400">
+                        <li class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                            Acessam modelos via API compartilhada
+                        </li>
+                        <li class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300"
+                            style="transition-delay: 0.1s;">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                            Biblioteca de prompts próprios
+                        </li>
+                        <li class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300"
+                            style="transition-delay: 0.2s;">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                            Cursos em português integrados
+                        </li>
                     </ul>
-                    <div class="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
-                        <span class="font-bold text-2xl">R$ 99/mês</span>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Plano Anual</span>
+                    <div class="mt-10 pt-8 border-t border-white/10 flex items-center justify-between">
+                        <span class="font-black text-3xl text-white">R$ 99<span
+                                class="text-lg text-slate-500">/mês</span></span>
+                        <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">Plano Anual</span>
                     </div>
                 </div>
-                <div class="bg-indigo-900 text-white p-10 rounded-[2.5rem] shadow-2xl shadow-indigo-200/50">
-                    <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
-                        <span class="p-2 bg-white/10 rounded-lg">⚡</span> LLMs Diretas (Full Access)
-                    </h3>
-                    <ul class="space-y-4 text-indigo-100/80">
-                        <li class="flex items-start gap-3"><span class="text-emerald-400 font-bold">•</span> Ecossistema completo de recursos nativos</li>
-                        <li class="flex items-start gap-3"><span class="text-emerald-400 font-bold">•</span> Prioridade absoluta em processamento</li>
-                        <li class="flex items-start gap-3"><span class="text-emerald-400 font-bold">•</span> Inovações lançadas em tempo real</li>
-                    </ul>
-                    <div class="mt-8 pt-8 border-t border-white/10 flex items-center justify-between">
-                        <span class="font-bold text-2xl">~R$ 120/mês</span>
-                        <span class="text-xs font-bold text-indigo-300 uppercase tracking-widest">ChatGPT Plus / Claude Pro</span>
+
+                <!-- LLMs Diretas Card -->
+                <div
+                    class="reveal-right relative p-10 rounded-[2.5rem] group hover:scale-[1.02] transition-all duration-500 overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800"></div>
+                    <div
+                        class="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]">
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold mb-8 flex items-center gap-4">
+                            <span class="p-3 bg-white/10 rounded-xl text-2xl">⚡</span>
+                            <span class="text-white">LLMs Diretas</span>
+                            <span class="text-indigo-200 text-sm font-normal">(Full Access)</span>
+                        </h3>
+                        <ul class="space-y-5 text-indigo-100/80">
+                            <li
+                                class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300">
+                                <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                Ecossistema completo de recursos nativos
+                            </li>
+                            <li class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300"
+                                style="transition-delay: 0.1s;">
+                                <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                Prioridade absoluta em processamento
+                            </li>
+                            <li class="flex items-center gap-4 group-hover:translate-x-2 transition-transform duration-300"
+                                style="transition-delay: 0.2s;">
+                                <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                Inovações lançadas em tempo real
+                            </li>
+                        </ul>
+                        <div class="mt-10 pt-8 border-t border-white/20 flex items-center justify-between">
+                            <span class="font-black text-3xl text-white">~R$ 120<span
+                                    class="text-lg text-indigo-200">/mês</span></span>
+                            <span class="text-xs font-bold text-indigo-300 uppercase tracking-widest">ChatGPT Plus /
+                                Claude Pro</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Tabela Técnica Completa -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-black mb-12 text-slate-900 flex items-center gap-4">
-                <span class="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-xl">02</span>
-                Matriz de Comparação Técnica
-            </h2>
-            <div class="bg-white rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden">
+    <!-- Comparison Table Section -->
+    <section class="py-32 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="reveal-section mb-16">
+                <div class="flex items-center gap-6 mb-4">
+                    <span
+                        class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg shadow-indigo-500/30">02</span>
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight">Matriz de Comparação Técnica
+                    </h2>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-[3rem] overflow-hidden reveal-scale">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-200">
+                        <thead class="bg-white/5 border-b border-white/10">
                             <tr>
-                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-500 tracking-widest">Categoria</th>
-                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-500 tracking-widest">Adapta One / Agregadores</th>
-                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-500 tracking-widest">ChatGPT Plus / Claude Pro</th>
+                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-400 tracking-widest">
+                                    Categoria</th>
+                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-400 tracking-widest">Adapta
+                                    One / Agregadores</th>
+                                <th class="px-8 py-6 text-xs font-black uppercase text-slate-400 tracking-widest">
+                                    ChatGPT Plus / Claude Pro</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6 font-bold text-slate-700">Preço Anual</td>
-                                <td class="px-8 py-6 text-slate-600 font-medium">R$ 1.188</td>
-                                <td class="px-8 py-6 text-indigo-600 font-bold italic">R$ 1.320 - R$ 1.440</td>
+                        <tbody class="divide-y divide-white/5">
+                            <tr class="table-row">
+                                <td class="px-8 py-6 font-bold text-white">Preço Anual</td>
+                                <td class="px-8 py-6 text-slate-400 font-medium">R$ 1.188</td>
+                                <td class="px-8 py-6 text-slate-400 font-medium">R$ 1.320 - R$ 1.440</td>
                             </tr>
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6 font-bold text-slate-700">Acesso a Modelos</td>
+                            <tr class="table-row">
+                                <td class="px-8 py-6 font-bold text-white">Acesso a Modelos</td>
                                 <td class="px-8 py-6">
-                                    <span class="badge-pro">Sim</span>
-                                    <p class="mt-2 text-xs text-rose-500 font-semibold italic uppercase">Restrito a interfaces básicas</p>
+                                    <span class="text-white">Sim</span>
+                                    <p class="mt-2 text-rose-400">Restrito a interfaces básicas</p>
                                 </td>
                                 <td class="px-8 py-6">
-                                    <span class="badge-pro">Sim</span>
-                                    <p class="mt-2 text-xs text-emerald-600 font-semibold uppercase tracking-wider">Acesso total ao ecossistema</p>
+                                    <span class="text-white">Sim</span>
+                                    <p class="mt-2 text-emerald-400">Acesso total ao ecossistema</p>
                                 </td>
                             </tr>
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6 font-bold text-slate-700">Recursos Avançados</td>
-                                <td class="px-8 py-6 text-rose-500 text-sm font-medium">
-                                    ❌ Sem Custom GPTs / Claude Projects<br>
-                                    ❌ Sem Análise Avançada (Python)<br>
-                                    ❌ Sem Memória Contextual (Memory)
+                            <tr class="table-row">
+                                <td class="px-8 py-6 font-bold text-white">Recursos Avançados</td>
+                                <td class="px-8 py-6 text-rose-400">
+                                    Sem Custom GPTs / Claude Projects<br>
+                                    Sem Análise Avançada (Python)<br>
+                                    Sem Memória Contextual (Memory)
                                 </td>
-                                <td class="px-8 py-6 text-emerald-600 text-sm font-medium">
-                                    ✅ Custom GPTs & Artifacts<br>
-                                    ✅ Code Interpreter (Data Analysis)<br>
-                                    ✅ Memória Persistente & Integrações
+                                <td class="px-8 py-6 text-emerald-400">
+                                    Custom GPTs & Artifacts<br>
+                                    Code Interpreter (Data Analysis)<br>
+                                    Memória Persistente & Integrações
                                 </td>
                             </tr>
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6 font-bold text-slate-700">Arquivos</td>
-                                <td class="px-8 py-6 text-slate-600 text-sm">
-                                    <span class="text-rose-600 font-bold">Limite: 5 arquivos/chat</span><br>
+                            <tr class="table-row">
+                                <td class="px-8 py-6 font-bold text-white">Arquivos</td>
+                                <td class="px-8 py-6 text-rose-400">
+                                    Limite: 5 arquivos/chat<br>
                                     Somente formatos idênticos<br>
-                                    ❌ Sem geração de Docs/PDFs
+                                    Sem geração de Docs/PDFs
                                 </td>
-                                <td class="px-8 py-6 text-slate-600 text-sm italic font-medium tracking-wide">
-                                    ✅ Sem limites artificiais<br>
-                                    ✅ Geração completa de documentos<br>
-                                    ✅ Múltiplos formatos simultâneos
+                                <td class="px-8 py-6 text-emerald-400">
+                                    Sem limites artificiais<br>
+                                    Geração completa de documentos<br>
+                                    Múltiplos formatos simultâneos
                                 </td>
                             </tr>
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6 font-bold text-slate-700">Performance</td>
-                                <td class="px-8 py-6 text-rose-600 font-bold italic text-xs uppercase tracking-widest">
-                                    ⚠️ Latência instável<br>⚠️ Bugs Recorrentes<br>⚠️ Sistema de Filas
+                            <tr class="table-row">
+                                <td class="px-8 py-6 font-bold text-white">Performance</td>
+                                <td class="px-8 py-6 text-rose-400">
+                                    Latência instável<br>
+                                    Bugs recorrentes<br>
+                                    Sistema de filas
                                 </td>
-                                <td class="px-8 py-6 text-emerald-600 font-bold text-xs uppercase tracking-widest">
-                                    ✅ Velocidade Máxima<br>✅ Infraestrutura Nativa<br>✅ Estabilidade 99.9%
+                                <td class="px-8 py-6 text-emerald-400">
+                                    Velocidade máxima<br>
+                                    Infraestrutura nativa<br>
+                                    Estabilidade 99.9%
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Wall of Truth (Depoimentos) -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-black mb-12 text-slate-900">💬 A Voz do Usuário Real</h2>
+    <!-- User Testimonials -->
+    <section class="py-32 px-6 relative overflow-hidden">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl md:text-5xl font-black mb-16 text-white reveal-section">
+                <span class="text-4xl mr-4">💬</span> A Voz do Usuário Real
+            </h2>
+
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Depoimento 1 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-3xl shadow-sm italic text-slate-600 leading-relaxed text-sm">
-                    "Basicamente você acessa o chat e só. Integrações e features via adapta, esquece."
-                    <div class="mt-6 flex items-center gap-3 not-italic">
-                        <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-600">UA</div>
+                <!-- Testimonial 1 -->
+                <div class="glass-card p-8 rounded-3xl group hover:border-indigo-500/30 transition-all duration-500">
+                    <div class="text-4xl mb-4 opacity-20 group-hover:opacity-40 transition-opacity">"</div>
+                    <p class="italic text-slate-400 leading-relaxed text-sm mb-8">
+                        Basicamente você acessa o chat e só. Integrações e features via adapta, esquece.
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center text-xs font-bold text-indigo-400">
+                            UA</div>
                         <div>
-                            <p class="text-xs font-black text-slate-800 uppercase">Usuário com 2 anos</p>
-                            <p class="text-[10px] text-slate-400">Feedback verificado</p>
+                            <p class="text-xs font-black text-white uppercase tracking-wide">Usuário com 2 anos</p>
+                            <p class="text-[10px] text-slate-600">Feedback verificado</p>
                         </div>
                     </div>
                 </div>
-                <!-- Depoimento 2 -->
-                <div class="p-8 bg-indigo-50 border border-indigo-100 rounded-3xl shadow-sm italic text-indigo-900 leading-relaxed text-sm">
-                    "Não ter memória como no ChatGPT é ruim demais. Parece que ele não aprende as coisas direito. Minha experiência com manipulação de arquivos .docx e .pdf também é negativa."
-                    <div class="mt-6 flex items-center gap-3 not-italic">
-                        <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white">CP</div>
-                        <div>
-                            <p class="text-xs font-black text-indigo-900 uppercase">Consultor Profissional</p>
-                            <p class="text-[10px] text-indigo-400">Feedback via Reddit</p>
+
+                <!-- Testimonial 2 -->
+                <div class="relative p-8 rounded-3xl overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20"></div>
+                    <div class="relative z-10">
+                        <div class="text-4xl mb-4 opacity-30">"</div>
+                        <p class="italic text-indigo-100 leading-relaxed text-sm mb-8">
+                            Não ter memória como no ChatGPT é ruim demais. Parece que ele não aprende as coisas direito.
+                            Minha experiência com manipulação de arquivos .docx e .pdf também é negativa.
+                        </p>
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                CP</div>
+                            <div>
+                                <p class="text-xs font-black text-white uppercase tracking-wide">Consultor Profissional
+                                </p>
+                                <p class="text-[10px] text-indigo-300">Feedback via Reddit</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- Depoimento 3 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-3xl shadow-sm italic text-slate-600 leading-relaxed text-sm">
-                    "Travadas, bugs básicos e erros estão cada vez mais comuns. Meu feeling é de que a rápida escalada talvez esteja comprometendo a entrega."
-                    <div class="mt-6 flex items-center gap-3 not-italic">
-                        <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-600">EA</div>
+
+                <!-- Testimonial 3 -->
+                <div class="glass-card p-8 rounded-3xl group hover:border-indigo-500/30 transition-all duration-500">
+                    <div class="text-4xl mb-4 opacity-20 group-hover:opacity-40 transition-opacity">"</div>
+                    <p class="italic text-slate-400 leading-relaxed text-sm mb-8">
+                        Travadas, bugs básicos e erros estão cada vez mais comuns. Meu feeling é de que a rápida
+                        escalada talvez esteja comprometendo a entrega.
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xs font-bold text-slate-400">
+                            EA</div>
                         <div>
-                            <p class="text-xs font-black text-slate-800 uppercase">Early Adopter</p>
-                            <p class="text-[10px] text-slate-400">Relato Técnico</p>
+                            <p class="text-xs font-black text-white uppercase tracking-wide">Early Adopter</p>
+                            <p class="text-[10px] text-slate-600">Relato Técnico</p>
                         </div>
                     </div>
                 </div>
-                <!-- Depoimento 4 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-3xl shadow-sm italic text-slate-600 leading-relaxed text-sm">
-                    "Nenhum dos modelos tem capacidade de gerar arquivos. O ChatGPT gratuito faz isso e me auxilia demais no trabalho."
-                    <div class="mt-6 flex items-center gap-3 not-italic">
-                        <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-600">UT</div>
+
+                <!-- Testimonial 4 - NOVO -->
+                <div class="glass-card p-8 rounded-3xl group hover:border-emerald-500/30 transition-all duration-500">
+                    <div class="text-4xl mb-4 opacity-20 group-hover:opacity-40 transition-opacity">"</div>
+                    <p class="italic text-slate-400 leading-relaxed text-sm mb-8">
+                        Nenhum dos modelos tem capacidade de gerar arquivos. O ChatGPT gratuito faz isso e me auxilia
+                        demais no trabalho.
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-xs font-bold text-emerald-400">
+                            UT</div>
                         <div>
-                            <p class="text-xs font-black text-slate-800 uppercase">Usuário em teste</p>
-                            <p class="text-[10px] text-slate-400">Comparação Gratuita</p>
+                            <p class="text-xs font-black text-white uppercase tracking-wide">Usuário em teste</p>
+                            <p class="text-[10px] text-emerald-400">Comparação Gratuita</p>
                         </div>
                     </div>
                 </div>
-                <!-- Depoimento 5 -->
-                <div class="p-8 bg-rose-50 border border-rose-100 rounded-3xl shadow-sm italic text-rose-900 leading-relaxed text-sm">
-                    "Limite de 5 arquivos por chat. Tentei analisar alguns textos para fazer referência cruzada e aí tem este limite."
-                    <div class="mt-6 flex items-center gap-3 not-italic">
-                        <div class="w-8 h-8 bg-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white">PF</div>
-                        <div>
-                            <p class="text-xs font-black text-rose-900 uppercase">Profissional de Pesquisa</p>
-                            <p class="text-[10px] text-rose-400">Limitação de Fluxo</p>
+
+                <!-- Testimonial 5 - NOVO -->
+                <div class="relative p-8 rounded-3xl overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-rose-600/20 to-orange-600/20"></div>
+                    <div class="relative z-10">
+                        <div class="text-4xl mb-4 opacity-30">"</div>
+                        <p class="italic text-rose-100 leading-relaxed text-sm mb-8">
+                            Limite de 5 arquivos por chat. Tentei analisar alguns textos para fazer referência cruzada e
+                            aí tem este limite.
+                        </p>
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                PP</div>
+                            <div>
+                                <p class="text-xs font-black text-white uppercase tracking-wide">Profissional de
+                                    Pesquisa</p>
+                                <p class="text-[10px] text-rose-300">Limitação de Fluxo</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Use Cases (Grid Sophisticado) -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-black mb-12 text-slate-900 uppercase italic tracking-tighter">03. Cenários Reais: O Teste de Estresse</h2>
+    <!-- Section 03: Cenários Reais -->
+    <section class="py-32 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="reveal-section mb-16">
+                <div class="flex items-center gap-6 mb-4">
+                    <span
+                        class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg shadow-emerald-500/30">03</span>
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight uppercase italic">Cenários
+                        Reais: O Teste de Estresse</h2>
+                </div>
+            </div>
+
             <div class="grid md:grid-cols-2 gap-8">
                 <!-- Case 1 -->
-                <div class="group p-10 bg-white rounded-[3rem] border border-slate-200 hover:border-indigo-400 transition-all shadow-sm">
-                    <span class="inline-block px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest mb-4">Caso Financeiro</span>
-                    <h4 class="text-xl font-bold mb-4">Análise de Dados Financeiros</h4>
-                    <p class="text-sm text-slate-500 mb-6">Importar planilha Excel, gerar gráficos e projeções de faturamento.</p>
+                <div
+                    class="group glass-card p-10 rounded-[3rem] hover:border-indigo-500/30 transition-all duration-500 reveal-section">
+                    <span
+                        class="inline-block px-4 py-1.5 rounded-full bg-indigo-500/20 text-[10px] font-black uppercase tracking-widest mb-6 text-indigo-300 border border-indigo-500/30">Caso
+                        Financeiro</span>
+                    <h4 class="text-xl font-bold mb-4 text-white">Análise de Dados Financeiros</h4>
+                    <p class="text-sm text-slate-500 mb-8">Importar planilha Excel, gerar gráficos e projeções de
+                        faturamento.</p>
                     <div class="space-y-4">
-                        <div class="p-4 bg-rose-50 rounded-xl text-sm flex flex-col gap-2 italic">
+                        <div
+                            class="p-5 bg-rose-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-rose-500/20">
                             <span class="badge-con self-start">Agregador</span>
-                            Incapaz de acessar interpretador Python nativo. Não gera ficheiros para download.
+                            <span class="text-rose-300 italic">Incapaz de acessar interpretador Python nativo. Não gera
+                                ficheiros para download.</span>
                         </div>
-                        <div class="p-4 bg-emerald-50 rounded-xl text-sm flex flex-col gap-2 font-medium">
+                        <div
+                            class="p-5 bg-emerald-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-emerald-500/20">
                             <span class="badge-pro self-start">Nativa</span>
-                            Code Interpreter processa a planilha e entrega gráficos prontos e relatório .xlsx.
+                            <span class="text-emerald-300 font-medium">Code Interpreter processa a planilha e entrega
+                                gráficos prontos e relatório .xlsx.</span>
                         </div>
                     </div>
                 </div>
+
                 <!-- Case 2 -->
-                <div class="group p-10 bg-white rounded-[3rem] border border-slate-200 hover:border-indigo-400 transition-all shadow-sm">
-                    <span class="inline-block px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest mb-4">Caso Operacional</span>
-                    <h4 class="text-xl font-bold mb-4">Assistente Personalizado</h4>
-                    <p class="text-sm text-slate-500 mb-6">Criar agente treinado com manuais da empresa para suporte interno.</p>
+                <div
+                    class="group glass-card p-10 rounded-[3rem] hover:border-indigo-500/30 transition-all duration-500 reveal-section">
+                    <span
+                        class="inline-block px-4 py-1.5 rounded-full bg-purple-500/20 text-[10px] font-black uppercase tracking-widest mb-6 text-purple-300 border border-purple-500/30">Caso
+                        Operacional</span>
+                    <h4 class="text-xl font-bold mb-4 text-white">Assistente Personalizado</h4>
+                    <p class="text-sm text-slate-500 mb-8">Criar agente treinado com manuais da empresa para suporte
+                        interno.</p>
                     <div class="space-y-4">
-                        <div class="p-4 bg-rose-50 rounded-xl text-sm flex flex-col gap-2 italic">
+                        <div
+                            class="p-5 bg-rose-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-rose-500/20">
                             <span class="badge-con self-start">Agregador</span>
-                            Sem memória persistente. A cada nova conversa, a IA "esquece" o contexto anterior.
+                            <span class="text-rose-300 italic">Sem memória persistente. A cada nova conversa, a IA
+                                "esquece" o contexto anterior.</span>
                         </div>
-                        <div class="p-4 bg-emerald-50 rounded-xl text-sm flex flex-col gap-2 font-medium">
+                        <div
+                            class="p-5 bg-emerald-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-emerald-500/20">
                             <span class="badge-pro self-start">Nativa</span>
-                            Custom GPTs permitem treinar a IA com documentos fixos e memória contínua.
+                            <span class="text-emerald-300 font-medium">Custom GPTs permitem treinar a IA com documentos
+                                fixos e memória contínua.</span>
                         </div>
                     </div>
                 </div>
+
                 <!-- Case 3 -->
-                <div class="group p-10 bg-white rounded-[3rem] border border-slate-200 hover:border-indigo-400 transition-all shadow-sm">
-                    <span class="inline-block px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest mb-4">Caso Acadêmico</span>
-                    <h4 class="text-xl font-bold mb-4">Referência de Documentos</h4>
-                    <p class="text-sm text-slate-500 mb-6">Análise cruzada de 10 artigos científicos simultâneos.</p>
+                <div
+                    class="group glass-card p-10 rounded-[3rem] hover:border-indigo-500/30 transition-all duration-500 reveal-section">
+                    <span
+                        class="inline-block px-4 py-1.5 rounded-full bg-cyan-500/20 text-[10px] font-black uppercase tracking-widest mb-6 text-cyan-300 border border-cyan-500/30">Caso
+                        Acadêmico</span>
+                    <h4 class="text-xl font-bold mb-4 text-white">Referência de Documentos</h4>
+                    <p class="text-sm text-slate-500 mb-8">Análise cruzada de 10 artigos científicos simultâneos.</p>
                     <div class="space-y-4">
-                        <div class="p-4 bg-rose-50 rounded-xl text-sm flex flex-col gap-2 italic">
+                        <div
+                            class="p-5 bg-rose-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-rose-500/20">
                             <span class="badge-con self-start">Agregador</span>
-                            Limite de 5 arquivos bloqueia o fluxo. Exige mesmo formato de ficheiro.
+                            <span class="text-rose-300 italic">Limite de 5 arquivos bloqueia o fluxo. Exige mesmo
+                                formato de ficheiro.</span>
                         </div>
-                        <div class="p-4 bg-emerald-50 rounded-xl text-sm flex flex-col gap-2 font-medium">
+                        <div
+                            class="p-5 bg-emerald-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-emerald-500/20">
                             <span class="badge-pro self-start">Nativa</span>
-                            Claude Pro permite carregar centenas de páginas em diversos formatos sem bloqueio.
+                            <span class="text-emerald-300 font-medium">Claude Pro permite carregar centenas de páginas
+                                em diversos formatos sem bloqueio.</span>
                         </div>
                     </div>
                 </div>
+
                 <!-- Case 4 -->
-                <div class="group p-10 bg-white rounded-[3rem] border border-slate-200 hover:border-indigo-400 transition-all shadow-sm">
-                    <span class="inline-block px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest mb-4">Caso Dev</span>
-                    <h4 class="text-xl font-bold mb-4">Desenvolvimento de Software</h4>
-                    <p class="text-sm text-slate-500 mb-6">Visualizar e testar código de um aplicativo em tempo real.</p>
+                <div
+                    class="group glass-card p-10 rounded-[3rem] hover:border-indigo-500/30 transition-all duration-500 reveal-section">
+                    <span
+                        class="inline-block px-4 py-1.5 rounded-full bg-pink-500/20 text-[10px] font-black uppercase tracking-widest mb-6 text-pink-300 border border-pink-500/30">Caso
+                        Dev</span>
+                    <h4 class="text-xl font-bold mb-4 text-white">Desenvolvimento de Software</h4>
+                    <p class="text-sm text-slate-500 mb-8">Visualizar e testar código de um aplicativo em tempo real.
+                    </p>
                     <div class="space-y-4">
-                        <div class="p-4 bg-rose-50 rounded-xl text-sm flex flex-col gap-2 italic">
+                        <div
+                            class="p-5 bg-rose-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-rose-500/20">
                             <span class="badge-con self-start">Agregador</span>
-                            Entrega apenas blocos de texto estático. Sem ambiente de execução.
+                            <span class="text-rose-300 italic">Entrega apenas blocos de texto estático. Sem ambiente de
+                                execução.</span>
                         </div>
-                        <div class="p-4 bg-emerald-50 rounded-xl text-sm flex flex-col gap-2 font-medium">
+                        <div
+                            class="p-5 bg-emerald-500/10 rounded-2xl text-sm flex flex-col gap-3 border border-emerald-500/20">
                             <span class="badge-pro self-start">Nativa</span>
-                            Artifacts renderizam o código em uma janela lateral funcional instantaneamente.
+                            <span class="text-emerald-300 font-medium">Artifacts renderizam o código em uma janela
+                                lateral funcional instantaneamente.</span>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Insights Técnicos (Verificados) -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-black mb-12 text-slate-900">🔧 Arquitetura de "API Proxy"</h2>
-            <div class="bg-indigo-900 rounded-[3rem] p-12 text-white overflow-hidden relative shadow-2xl">
-                <div class="grid md:grid-cols-2 gap-12 items-center">
+    <!-- API Proxy Architecture Section -->
+    <section class="py-32 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl md:text-5xl font-black mb-16 text-white reveal-section">
+                <span class="text-4xl mr-4">🔧</span> Arquitetura de "API Proxy"
+            </h2>
+
+            <div class="relative rounded-[3rem] p-12 overflow-hidden reveal-scale">
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-900"></div>
+                <div
+                    class="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.4),transparent_50%)]">
+                </div>
+
+                <div class="relative z-10 grid md:grid-cols-2 gap-12 items-center">
                     <div>
-                        <h3 class="text-2xl font-bold mb-6 italic text-indigo-300">Como os Agregadores Funcionam:</h3>
-                        <p class="text-indigo-100/70 mb-8 leading-relaxed italic">
-                            "Provavelmente é uma interface que divide o uso das IAs. Por exemplo, eles têm 1 assinatura do GPT-4 mas têm 10 contas usando a mesma assinatura. Cada prompt entra numa fila e é executado tipo num paralelismo. Isso explica a lentidão."
+                        <h3 class="text-2xl font-bold mb-6 text-indigo-300">Como os Agregadores Funcionam:</h3>
+                        <p class="text-indigo-100/70 mb-8 leading-relaxed italic text-lg">
+                            "Provavelmente é uma interface que divide o uso das IAs. Por exemplo, eles têm 1 assinatura
+                            do GPT-4 mas têm 10 contas usando a mesma assinatura. Cada prompt entra numa fila e é
+                            executado tipo num paralelismo. Isso explica a lentidão."
                         </p>
-                        <ul class="space-y-4 text-sm font-medium">
-                            <li class="flex items-center gap-3"><span class="w-2 h-2 bg-emerald-400 rounded-full"></span> Filas de processamento causam latência visível</li>
-                            <li class="flex items-center gap-3"><span class="w-2 h-2 bg-emerald-400 rounded-full"></span> Recursos compartilhados limitam tokens por sessão</li>
-                            <li class="flex items-center gap-3"><span class="w-2 h-2 bg-emerald-400 rounded-full"></span> Vulnerabilidades de privacidade em proxies compartilhados</li>
+                        <ul class="space-y-4 text-sm font-medium text-white">
+                            <li class="flex items-center gap-4">
+                                <span class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
+                                Filas de processamento causam latência visível
+                            </li>
+                            <li class="flex items-center gap-4">
+                                <span class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"
+                                    style="animation-delay: 0.5s;"></span>
+                                Recursos compartilhados limitam tokens por sessão
+                            </li>
+                            <li class="flex items-center gap-4">
+                                <span class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"
+                                    style="animation-delay: 1s;"></span>
+                                Vulnerabilidades de privacidade em proxies compartilhados
+                            </li>
                         </ul>
                     </div>
-                    <!-- Mockup de Gráfico -->
-                    <div class="bg-white/5 p-8 rounded-3xl border border-white/10">
-                        <p class="text-center text-xs font-black uppercase tracking-widest mb-6 opacity-60">Velocidade de Resposta (ms)</p>
-                        <div class="space-y-6">
+
+                    <div class="bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-sm">
+                        <p class="text-center text-xs font-black uppercase tracking-widest mb-8 text-indigo-300">
+                            Velocidade de Resposta (ms)</p>
+                        <div class="space-y-8">
                             <div>
-                                <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-tighter"><span>Nativa (Direta)</span> <span>250ms</span></div>
-                                <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <div class="h-full bg-emerald-400 feature-bar" style="width: 25%"></div>
+                                <div class="flex justify-between text-xs mb-3 font-bold uppercase tracking-tight">
+                                    <span class="text-emerald-400">Nativa (Direta)</span>
+                                    <span class="text-emerald-400">250ms</span>
+                                </div>
+                                <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 feature-bar rounded-full"
+                                        data-width="25%"></div>
                                 </div>
                             </div>
                             <div>
-                                <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-tighter opacity-60"><span>Agregador (Off-peak)</span> <span>850ms</span></div>
-                                <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <div class="h-full bg-indigo-400 feature-bar" style="width: 60%"></div>
+                                <div
+                                    class="flex justify-between text-xs mb-3 font-bold uppercase tracking-tight text-slate-400">
+                                    <span>Agregador (Off-peak)</span>
+                                    <span>850ms</span>
+                                </div>
+                                <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 feature-bar rounded-full"
+                                        data-width="60%"></div>
                                 </div>
                             </div>
                             <div>
-                                <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-tighter opacity-60 text-rose-300"><span>Agregador (Horário Pico)</span> <span>2100ms+</span></div>
-                                <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <div class="h-full bg-rose-500 feature-bar" style="width: 95%"></div>
+                                <div
+                                    class="flex justify-between text-xs mb-3 font-bold uppercase tracking-tight text-rose-400">
+                                    <span>Agregador (Peak)</span>
+                                    <span>2400ms+</span>
+                                </div>
+                                <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-rose-500 to-orange-500 feature-bar rounded-full"
+                                        data-width="95%"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Final Investment Math -->
-        <section class="mb-24 bg-white border border-slate-200 rounded-[3rem] p-12 text-center shadow-sm">
-            <h2 class="text-3xl font-black mb-10 text-slate-900">💰 O Paradoxo da Economia</h2>
-            <div class="max-w-2xl mx-auto space-y-10">
-                <p class="text-slate-500 text-lg">
-                    Você está disposto a abrir mão de recursos profissionais, estabilidade e produtividade real para economizar menos que um café por dia?
+    <!-- Economy Paradox Section -->
+    <section class="py-32 px-6 relative">
+        <div class="max-w-4xl mx-auto">
+            <div class="glass-card rounded-[3rem] p-16 text-center reveal-scale glow">
+                <h2 class="text-4xl md:text-5xl font-black mb-12 text-white">
+                    <span class="text-4xl mr-4">💰</span> O Paradoxo da Economia
+                </h2>
+                <p class="text-slate-400 text-xl mb-12 max-w-2xl mx-auto">
+                    Você está disposto a abrir mão de recursos profissionais, estabilidade e produtividade real para
+                    economizar menos que um café por dia?
                 </p>
-                <div class="inline-flex flex-col items-center gap-4 py-4">
-                    <div class="text-[5.5rem] font-black text-slate-900 leading-none tracking-tighter">R$ 0,69</div>
-                    <div class="text-[14px] font-black text-indigo-600 uppercase tracking-[0.4em] bg-indigo-50 px-6 py-2 rounded-full">Diferença Diária</div>
-                </div>
-                <p class="text-sm font-bold text-slate-400 italic">
-                    (Valor de um cafezinho expresso por semana cobre o gap para a conta Plus/Pro)
-                </p>
-            </div>
-        </section>
-
-        <!-- Conclusão Final -->
-        <section class="mb-24">
-            <div class="p-12 bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-20">
-                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                </div>
-                <h2 class="text-4xl font-black mb-8 italic">Veredito Baseado em Dados</h2>
-                <div class="space-y-6 text-indigo-100 text-lg leading-relaxed">
-                    <p>Agregadores oferecem um <strong>ponto de entrada acessível</strong>, mas o feedback consistente de profissionais aponta limitações críticas que afetam a produtividade.</p>
-                    <p>A economia nominal pode custar caro em termos de tempo perdido com bugs, ausência de memória contextual e falta de recursos de análise avançada.</p>
-                    <p class="text-2xl font-bold text-emerald-400 mt-10">
-                        Para uso profissional sério, o investimento nativo não é custo — é <span class="underline decoration-emerald-400 underline-offset-8 italic">vantagem competitiva</span>.
+                <div class="inline-flex flex-col items-center gap-6">
+                    <div class="text-8xl md:text-9xl font-black gradient-text leading-none">
+                        R$ <span class="counter" data-target="0.69" data-decimal="true">0</span>
+                    </div>
+                    <div
+                        class="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] bg-indigo-500/20 px-8 py-3 rounded-full border border-indigo-500/30">
+                        Diferença Diária
+                    </div>
+                    <p class="text-slate-500 text-base mt-4 max-w-lg text-center italic">
+                        Valor de um cafezinho expresso por semana cobre o gap para a conta Plus/Pro
                     </p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Footer / Metodologia -->
-        <footer class="pt-10 border-t border-slate-200 grid md:grid-cols-2 gap-12 text-slate-400 pb-12">
-            <div>
-                <h4 class="text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">Metodologia</h4>
-                <p class="text-[10px] leading-relaxed">Análise técnica realizada via cruzamento de dados de subscrição de 2025, relatos de utilizadores no Reddit, Reclame Aqui, e análise técnica de paralelismo de APIs em proxies compartilhados.</p>
+    <!-- Verdict Section -->
+    <section class="py-32 px-6 relative overflow-hidden">
+        <div class="max-w-5xl mx-auto">
+            <div class="relative rounded-[3rem] p-16 overflow-hidden reveal-scale">
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
+                <div
+                    class="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_50%)]">
+                </div>
+
+                <div class="relative z-10">
+                    <h2 class="text-5xl md:text-6xl font-black mb-10 text-white">Veredito Baseado em Dados</h2>
+                    <div class="space-y-6 text-white/90 text-xl leading-relaxed">
+                        <p>Agregadores oferecem um <strong class="text-white">ponto de entrada acessível</strong>, mas o
+                            feedback consistente de profissionais aponta limitações críticas que afetam a produtividade.
+                        </p>
+                        <p class="text-white/70">
+                            A economia nominal pode custar caro em termos de tempo perdido com bugs, ausência de memória
+                            contextual e falta de recursos de análise avançada.
+                        </p>
+                        <p class="text-3xl font-bold text-emerald-300 pt-4">
+                            Para uso profissional sério, o investimento nativo não é custo — é
+                            <span class="underline decoration-emerald-400 decoration-4 underline-offset-8">vantagem
+                                competitiva</span>.
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="md:text-right">
-                <h4 class="text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">Fontes</h4>
-                <p class="text-[10px] leading-relaxed italic">OpenAI Docs, Anthropic Technical Papers, Adapta.org Terms of Service, Community Feedback (2023-2025).</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-20 px-6 border-t border-white/10">
+        <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-12 text-slate-500">
+            <div class="reveal-section">
+                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Metodologia</h4>
+                <p class="text-xs leading-relaxed">Análise técnica realizada via cruzamento de dados de subscrição de
+                    2025, relatos de utilizadores no Reddit, Reclame Aqui, e análise técnica de paralelismo de APIs em
+                    proxies compartilhados.</p>
             </div>
-        </footer>
+            <div class="reveal-section" style="transition-delay: 0.1s;">
+                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Fontes</h4>
+                <p class="text-xs leading-relaxed italic">OpenAI Docs, Anthropic Technical Papers, Adapta.org Terms of
+                    Service, Community Feedback (2023-2025).</p>
+            </div>
+        </div>
+    </footer>
 
-    </main>
-
-    <div class="fixed bottom-0 left-0 w-full bg-slate-900 py-3 text-[9px] text-slate-500 font-bold uppercase tracking-[0.5em] text-center z-50">
-        Este documento é uma análise técnica independente e não possui vínculo comercial com as marcas citadas.
+    <!-- Fixed Bottom Bar -->
+    <div
+        class="fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-md py-4 text-[9px] text-slate-500 font-bold uppercase tracking-[0.5em] text-center z-50 border-t border-white/5">
+        Este documento é uma análise técnica independente • Powered by AYA
     </div>
 
+    <script>
+        // Initialize Lenis smooth scroll
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            touchMultiplier: 2,
+            infinite: false,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        // Connect Lenis to GSAP ScrollTrigger
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => {
+            lenis.raf(time * 1000);
+        });
+        gsap.ticker.lagSmoothing(0);
+
+        // Register ScrollTrigger
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Progress bar animation
+        gsap.to('.progress-bar', {
+            scaleX: 1,
+            ease: 'none',
+            scrollTrigger: {
+                trigger: 'body',
+                start: 'top top',
+                end: 'bottom bottom',
+                scrub: 0.3
+            }
+        });
+
+        // Custom cursor
+        const cursor = document.querySelector('.custom-cursor');
+        let mouseX = 0, mouseY = 0;
+        let cursorX = 0, cursorY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateCursor() {
+            cursorX += (mouseX - cursorX) * 0.1;
+            cursorY += (mouseY - cursorY) * 0.1;
+            cursor.style.left = cursorX - 10 + 'px';
+            cursor.style.top = cursorY - 10 + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // Hover effect for cursor
+        document.querySelectorAll('a, button, .glass-card, .magnetic-btn').forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+
+        // Hero animations
+        const heroTl = gsap.timeline();
+
+        heroTl
+            .from('.floating-badge', {
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: 'power3.out'
+            })
+            .from('.hero-title span', {
+                opacity: 0,
+                y: 100,
+                rotationX: -90,
+                stagger: 0.2,
+                duration: 1.2,
+                ease: 'power4.out'
+            }, '-=0.5')
+            .to('.hero-subtitle', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power3.out'
+            }, '-=0.5');
+
+        // Reveal animations for sections
+        gsap.utils.toArray('.reveal-section').forEach((section, i) => {
+            gsap.to(section, {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: section,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Reveal left animations
+        gsap.utils.toArray('.reveal-left').forEach(el => {
+            gsap.to(el, {
+                opacity: 1,
+                x: 0,
+                duration: 1.2,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: el,
+                    start: 'top 80%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Reveal right animations
+        gsap.utils.toArray('.reveal-right').forEach(el => {
+            gsap.to(el, {
+                opacity: 1,
+                x: 0,
+                duration: 1.2,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: el,
+                    start: 'top 80%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Reveal scale animations
+        gsap.utils.toArray('.reveal-scale').forEach(el => {
+            gsap.to(el, {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: el,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Counter animation
+        gsap.utils.toArray('.counter').forEach(counter => {
+            const target = parseFloat(counter.dataset.target);
+            const isDecimal = counter.dataset.decimal === 'true';
+
+            ScrollTrigger.create({
+                trigger: counter,
+                start: 'top 85%',
+                onEnter: () => {
+                    gsap.to(counter, {
+                        innerText: target,
+                        duration: 2,
+                        ease: 'power2.out',
+                        snap: { innerText: isDecimal ? 0.01 : 1 },
+                        onUpdate: function () {
+                            if (isDecimal) {
+                                counter.innerText = parseFloat(counter.innerText).toFixed(2).replace('.', ',');
+                            }
+                        }
+                    });
+                },
+                once: true
+            });
+        });
+
+        // Feature bar animations
+        gsap.utils.toArray('.feature-bar').forEach(bar => {
+            const width = bar.dataset.width;
+            gsap.to(bar, {
+                scaleX: 1,
+                duration: 1.5,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: bar,
+                    start: 'top 90%',
+                    toggleActions: 'play none none reverse'
+                },
+                onStart: () => {
+                    bar.style.width = width;
+                }
+            });
+        });
+
+        // Parallax effect for background orbs
+        gsap.utils.toArray('.animate-pulse').forEach((orb, i) => {
+            gsap.to(orb, {
+                y: -100 * (i + 1),
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: 'header',
+                    start: 'top top',
+                    end: 'bottom top',
+                    scrub: 1
+                }
+            });
+        });
+
+        // Stagger animation for testimonial cards
+        gsap.utils.toArray('.testimonial-card').forEach((card, i) => {
+            gsap.from(card, {
+                opacity: 0,
+                y: 80,
+                rotation: 3,
+                duration: 1,
+                delay: i * 0.15,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(particle);
+
+                gsap.to(particle, {
+                    y: -window.innerHeight,
+                    x: (Math.random() - 0.5) * 200,
+                    opacity: 0,
+                    duration: 10 + Math.random() * 10,
+                    repeat: -1,
+                    ease: 'none',
+                    delay: Math.random() * 10
+                });
+            }
+        }
+        createParticles();
+
+        // Table row hover effects
+        gsap.utils.toArray('.table-row').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                gsap.to(row, {
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    duration: 0.3
+                });
+            });
+            row.addEventListener('mouseleave', () => {
+                gsap.to(row, {
+                    backgroundColor: 'transparent',
+                    duration: 0.3
+                });
+            });
+        });
+
+        // Magnetic button effect
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+
+                gsap.to(card, {
+                    x: x * 0.05,
+                    y: y * 0.05,
+                    duration: 0.5,
+                    ease: 'power2.out'
+                });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                gsap.to(card, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.5,
+                    ease: 'power2.out'
+                });
+            });
+        });
+
+        // Scroll indicator fade out
+        gsap.to('.scroll-indicator', {
+            opacity: 0,
+            y: 20,
+            scrollTrigger: {
+                trigger: 'header',
+                start: 'top top',
+                end: '30% top',
+                scrub: 1
+            }
+        });
+
+        // Hide custom cursor on mobile
+        if ('ontouchstart' in window) {
+            cursor.style.display = 'none';
+        }
+    </script>
+
+    <!-- Logo Final -->
+    <div class="pb-24 pt-12 flex flex-col justify-center items-center gap-4">
+        <img src="assets/img/AYA.png" alt="AYA Logo" class="h-20 opacity-80" style="filter: brightness(0) invert(1);">
+        <p class="text-sm font-bold uppercase tracking-[0.4em] text-slate-500">The future is intelligence</p>
+    </div>
 </body>
+
 </html>
